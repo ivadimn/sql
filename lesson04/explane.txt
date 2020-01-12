@@ -1,0 +1,42 @@
+1. Струкутра БД vk была обновлена в соответствии с рекомендациями на вебинаре - файл new_vk.sql, 
+в этом же файле заполнение таблиц media_types, friendship_statuses, без генерации в http://filldb.info/
+2. Данные для заполнения таблиц сгенернированные в http://filldb.info/ разложены по разным файлам
+01. insert-users.sql
+02. insert-plases.sql
+03. insert-profiles.sql
+04. insert-messages.sql
+05. insert-media.sql
+06. insert-posts.sql
+07. insert-friendship.sql
+08. insert-communities.sql
+09. insert- communities_users.sql
+10. insert-meetings.sql
+там же команды по изменения дат где это возможно
+и обновления некотороых полей.
+3. В качестве основы курсовой работы я хочу взять портал по подбору персонала.
+С точки зрения базы данных там есть практически всё, что испольтзуется в социальных сетях, и даже больше.
+4. Для лайков всех объектов можно предложить следующую структру:
+
+CREATE TABLE types_objects (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(128) NOT NULL ,
+  table_name VARCHAR(128) NOT NULL
+);
+
+CREATE TABLE likes_objects (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  type_id INT UNSIGNED NOT NULL,
+  entity_id INT UNSIGNED NOT NULL
+);
+
+CREATE TABLE likes (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL ,
+  object_id INT UNSIGNED NOT NULL ,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+Талица types_objects содержит типы объектов которые можно лайкать.
+Таблица likes_objects содержит все сущности entity_id, которые лайкнули с указанием его типа type_id
+(недостаток в том что en)
+
+
