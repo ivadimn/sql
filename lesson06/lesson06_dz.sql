@@ -2,28 +2,78 @@
 -- определить возможные корректировки и/или улучшения (JOIN пока не применять).
 
 
-
 -- Пусть задан некоторый пользователь. 
 -- из всех друзей этого пользователя найдите человека, который больше всех общался с нашим пользователем.
 -- пусть user_id = 10
+select * from friendship_statuses;
 
-Select id from users;
-Select from_user_id FROM messages WHERE to_user_id = 10;
+INSERT INTO `friendship` (`user_id`, `friend_id`, `status_id`, `requested_at`, `confirmed_at`) 
+VALUES (10, 73, 2, '2018-06-02 09:56:27', '2019-06-20 05:38:59');
+UPDATE friendship SET status_id = 2 WHERE friend_id = 10;
 
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (11, 10, 'Cumque minus eos quo expedita. Praesentium expedita culpa fuga atque autem dolorum. Id a fugit soluta ut.', 1, 0);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (85, 10, 'Corporis deleniti natus iste. Eligendi iure perferendis et maxime illum cumque. Et et dolores aut consequatur qui nulla. Id sunt perferendis est et ut quia quos.', 1, 1);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (78, 10, 'Sit quasi sint vitae ratione voluptate distinctio nemo provident. Sed cupiditate vitae nemo corporis quia. Aperiam veritatis hic natus officia nihil repellat libero.', 1, 0);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (45, 10, 'Dolorem eius est veniam velit sed. Voluptatem cumque nostrum consequatur aut facilis. Corporis numquam aperiam qui vel totam pariatur animi qui. Cum deleniti soluta dolores omnis.', 1, 0);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (32, 10, 'Aut non nam molestiae sit. Velit ut ab est temporibus. Corrupti tenetur illo sapiente assumenda inventore. Quisquam ea nesciunt et quasi qui.', 0, 1);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (100, 10, 'Aut officia aut dicta minima et. Et voluptate sed officia id.', 0, 0);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (34, 10, 'Incidunt suscipit nulla amet aut voluptas eveniet laudantium. Nostrum quasi eveniet omnis sed id et. Qui dignissimos culpa doloribus ut occaecati id laboriosam. Corporis sed velit et.', 1, 0);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (10, 10, 'Facilis accusamus voluptas repellat qui. Optio doloremque eligendi ratione consequatur incidunt pariatur sunt. Vero odio perspiciatis quasi qui animi.', 1, 1);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (86, 10, 'Aut aut ab consequatur cumque aperiam natus iste. Ut a sapiente iste beatae officiis.', 0, 1);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (12, 10, 'Doloremque iure sit accusamus. Sequi sapiente voluptatum nobis quam quibusdam facere. Corrupti nisi sed sed qui dicta non voluptas.', 1, 0);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (66, 10, 'Et voluptas labore doloremque minima repudiandae quidem incidunt. Modi quisquam illum molestias nemo voluptates. Quas molestiae eos ipsum optio itaque vero corporis nobis.', 1, 1);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (77, 10, 'Totam voluptate ut aut commodi accusamus omnis maxime. Magnam officia sit consequatur illo. Ratione rerum possimus dolore sunt quisquam.', 0, 0);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (21, 10, 'Voluptatem totam consequuntur aut nulla repellendus. Id rerum aut quidem accusamus voluptatem. Doloribus dolores id ab commodi.', 0, 1);
-INSERT INTO `messages` (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`) VALUES (42, 10, 'Illo corporis est atque qui vel rem harum. Suscipit blanditiis in ipsam deleniti hic voluptas. Ut amet aut tempore eos.', 1, 0);
+-- выбор друзей
+(SELECT friend_id 
+	FROM friendship 
+    WHERE user_id = 10
+    AND requested_at IS NOT NULL
+    AND status_id IN (
+		SELECT id FROM friendship_statuses WHERE name = 'Confirmed')
+    )    
+UNION
+(SELECT user_id 
+	FROM friendship 
+    WHERE friend_id = 10
+    AND requested_at IS NOT NULL
+    AND status_id IN (
+		SELECT id FROM friendship_statuses WHERE name = 'Confirmed')
+);
+
+INSERT INTO messages (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`, `created_at`) 
+VALUES (10, 73, 'Cumque minus eos quo expedita. Praesentium expedita culpa fuga atque autem dolorum. Id a fugit soluta ut.', 1, 1, '2019-09-17 20:41:25');
+
+SELECT id, COUNT(id) FROM users WHERE id IN (
+ (SELECT from_user_id, body, is_delivered, created_at 
+  FROM messages
+    WHERE from_user_id IN (
+    (SELECT friend_id 
+		FROM friendship 
+		WHERE user_id = 10
+		AND requested_at IS NOT NULL
+		AND status_id IN (
+			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
+	UNION
+	(SELECT user_id 
+		FROM friendship 
+		WHERE friend_id = 10
+		AND requested_at IS NOT NULL
+		AND status_id IN (
+			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
+	 )
+     AND to_user_id = 10)
+UNION
+  (SELECT to_user_id, body, is_delivered, created_at 
+  FROM messages
+    WHERE to_user_id IN (
+    (SELECT friend_id 
+		FROM friendship 
+		WHERE user_id = 10
+		AND requested_at IS NOT NULL
+		AND status_id IN (
+			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
+	UNION
+	(SELECT user_id 
+		FROM friendship 
+		WHERE friend_id = 10
+		AND requested_at IS NOT NULL
+		AND status_id IN (
+			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
+	 )
+     AND from_user_id = 10)
+)
+GROUP BY id;     
+
+
+
 
 
 -- Подсчитать общее количество лайков, которые получили 10 самых молодых пользователей.
