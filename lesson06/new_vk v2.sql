@@ -7,7 +7,7 @@ DROP DATABASE vk;
 CREATE DATABASE vk;
 
 -- Делаем её текущей
-USE vk;
+USE skillbox;
 
 -- Создаём таблицу пользователей
 

@@ -568,9 +568,9 @@ SELECT
     LIMIT 10;
   
  -- Выбираем друзей пользователя с двух сторон отношения дружбы
-(SELECT friend_id FROM friendship WHERE user_id = 3)
+(SELECT friend_id FROM friendship WHERE user_id = 10)
 UNION
-(SELECT user_id FROM friendship WHERE friend_id = 3);
+(SELECT user_id FROM friendship WHERE friend_id = 10);
 
 -- Выбираем только друзей с активным статусом
 SELECT * FROM friendship_statuses;
