@@ -7,7 +7,7 @@ DROP DATABASE vk;
 CREATE DATABASE vk;
 
 -- Делаем её текущей
-USE skillbox;
+USE vk;
 
 -- Создаём таблицу пользователей
 
@@ -193,6 +193,23 @@ INSERT INTO likes
     FLOOR(1 + (RAND() * 4)),
     CURRENT_TIMESTAMP 
   FROM messages;
+  
+  
+CREATE TABLE meetings_users (
+  meeting_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`,`meeting_id`)
+); 
+
+-- Заполняем
+INSERT INTO meetings_users 
+  SELECT 
+    FLOOR(1 + (RAND() * 100)), 
+    FLOOR(1 + (RAND() * 100)),
+    CURRENT_TIMESTAMP 
+  FROM posts;
+  
 
 
 

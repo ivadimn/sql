@@ -55,127 +55,23 @@ SELECT
   LIMIT 1; 
 
 
-select * from friendship_statuses;
-
-INSERT INTO `friendship` (`user_id`, `friend_id`, `status_id`, `requested_at`, `confirmed_at`) 
-VALUES (10, 100, 2, '2018-06-02 09:56:27', '2019-06-20 05:38:59');
-UPDATE friendship SET status_id = 2 WHERE friend_id = 10;
-
--- выбор друзей
-(SELECT friend_id 
-	FROM friendship 
-    WHERE user_id = 10
-    AND requested_at IS NOT NULL
-    AND status_id IN (
-		SELECT id FROM friendship_statuses WHERE name = 'Confirmed')
-    )    
-UNION
-(SELECT user_id 
-	FROM friendship 
-    WHERE friend_id = 10
-    AND requested_at IS NOT NULL
-    AND status_id IN (
-		SELECT id FROM friendship_statuses WHERE name = 'Confirmed')
-);
-
-INSERT INTO messages (`from_user_id`, `to_user_id`, `body`, `is_important`, `is_delivered`, `created_at`) 
-VALUES (100, 10, 'Cumque minus eos quo expedita. Praesentium expedita culpa fuga atque autem dolorum. Id a fugit soluta ut.', 1, 1, '2019-10-17 20:41:25');
-
-SELECT id, COUNT(id) FROM users WHERE id IN (
- (SELECT from_user_id, body, is_delivered, created_at 
-  FROM messages
-    WHERE from_user_id IN (
-    (SELECT friend_id 
-		FROM friendship 
-		WHERE user_id = 10
-		AND requested_at IS NOT NULL
-		AND status_id IN (
-			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
-	UNION
-	(SELECT user_id 
-		FROM friendship 
-		WHERE friend_id = 10
-		AND requested_at IS NOT NULL
-		AND status_id IN (
-			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
-	 )
-     AND to_user_id = 10)
-UNION
-  (SELECT to_user_id, body, is_delivered, created_at 
-  FROM messages
-    WHERE to_user_id IN (
-    (SELECT friend_id 
-		FROM friendship 
-		WHERE user_id = 10
-		AND requested_at IS NOT NULL
-		AND status_id IN (
-			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
-	UNION
-	(SELECT user_id 
-		FROM friendship 
-		WHERE friend_id = 10
-		AND requested_at IS NOT NULL
-		AND status_id IN (
-			SELECT id FROM friendship_statuses WHERE name = 'Confirmed'))
-	 )
-     AND from_user_id = 10)
-)
-GROUP BY id;     
-
-SELECT ALL first_name FROM users
-	WHERE id IN (
-		SELECT from_user_id FROM messages WHERE to_user_id = 10
-		UNION ALL
-		SELECT to_user_id FROM messages WHERE from_user_id = 10)
-    ORDER BY id;    
-    
-SELECT m.u, COUNT(m.u) FROM (
-		SELECT from_user_id as u FROM messages WHERE to_user_id = 10
-		UNION ALL
-		SELECT to_user_id as u FROM messages WHERE from_user_id = 10) as m
-        GROUP BY m.u
-        ORDER BY COUNT(m.u) DESC;    
-
-SELECT m.uname, count(m.uname) FROM (
-SELECT  
-  (SELECT CONCAT(first_name, ' ', last_name) 
-	FROM users WHERE id = from_user_id) as uname 
-  FROM messages WHERE to_user_id = 10
-UNION ALL
-SELECT 
-  (SELECT CONCAT(first_name, ' ', last_name) 
-	FROM users WHERE id = to_user_id) as uname	
-  FROM messages WHERE from_user_id = 10
-  ) as m
-  GROUP BY m.uname
-  ORDER BY COUNT(m.uname) DESC
-  LIMIT 1;
-
-
-SELECT from_user_id as u, COUNT(u) FROM messages WHERE to_user_id = 10
-UNION ALL
-SELECT to_user_id as u, COUNT(u) FROM messages WHERE from_user_id = 10
-GROUP BY u;
-
-
-
 -- Подсчитать общее количество лайков, которые получили 10 самых молодых пользователей.
-
-SELECT id, CONCAT(first_name, ' ', last_name) as uname, 
-    (SELECT FLOOR(DATEDIFF(NOW(), birthday) / 365.25) 
-		FROM profiles 
-        WHERE user_id = id ) as age 
-	FROM users;
-    
-
-SELECT user_id 
+-- смог сделать только с использованием временной таблицыб куда были вставлены 
+-- 10 самых молодых пользователей  
+-- конструкция: WHERE user_id IN ( SELECT user_id 
+#               FROM profiles
+#               ORDER BY FLOOR(DATEDIFF(NOW(), birthday) / 365.25)
+#               LIMIT 10); 
+#   не работает
+#   наверно есть другое решение ???
+ 
+DROP TABLE IF EXISTS uids;
+CREATE TEMPORARY TABLE uids SELECT user_id 
 	FROM profiles
     ORDER BY FLOOR(DATEDIFF(NOW(), birthday) / 365.25)
     LIMIT 10;
-
     
-    
-SELECT COUNT(l.uid) FROM (
+SELECT COUNT(l.uid) as 'total likes' FROM (
 SELECT from_user_id as uid
    FROM messages
    WHERE id IN (
@@ -183,10 +79,6 @@ SELECT from_user_id as uid
 			SELECT id FROM target_types WHERE name = 'messages'
 			)
        ) 
-   AND from_user_id IN (SELECT user_id 
-		FROM profiles
-		ORDER BY FLOOR(DATEDIFF(NOW(), birthday) / 365.25)
-		LIMIT 10)   
 UNION ALL
 SELECT id as uid
    FROM users
@@ -195,10 +87,6 @@ SELECT id as uid
 			SELECT id FROM target_types WHERE name = 'users'
 			)
        )
-   AND id IN (SELECT user_id 
-	FROM profiles
-    ORDER BY FLOOR(DATEDIFF(NOW(), birthday) / 365.25)
-    LIMIT 10)    
 UNION ALL
 SELECT user_id as uid
    FROM media
@@ -207,10 +95,6 @@ SELECT user_id as uid
 			SELECT id FROM target_types WHERE name = 'media'
 		    )
        )
-   AND user_id IN (SELECT user_id 
-	FROM profiles
-    ORDER BY FLOOR(DATEDIFF(NOW(), birthday) / 365.25)
-    LIMIT 10)    
 UNION ALL
 SELECT user_id as uid
    FROM posts
@@ -219,27 +103,46 @@ SELECT user_id as uid
 			SELECT id FROM target_types WHERE name = 'posts'
 			)
        )
-   AND user_id IN (SELECT user_id 
-	FROM profiles
-    ORDER BY FLOOR(DATEDIFF(NOW(), birthday) / 365.25)
-    LIMIT 10)    
-) as l;   
+) as l
+WHERE l.uid IN (SELECT user_id FROM uids);   
+  
 
-       
-  
-SELECT from_user_id
-   FROM messages
-   WHERE id IN ( 
-		SELECT target_id FROM likes WHERE target_type_id = (
-			SELECT id FROM target_types WHERE name = 'messages'
-			)
-       ) 
-   AND from_user_id IN ( SELECT user_id 
-		FROM profiles
-		ORDER BY FLOOR(DATEDIFF(NOW(), birthday) / 365.25)
-		LIMIT 10);   
-  
 -- Определить кто больше поставил лайков (всего) - мужчины или женщины?
+
+SELECT  CONCAT('мужчины поставили ', COUNT(user_id), ' лайков') as mans,
+        CONCAT('женщины поставили ',(SELECT COUNT(user_id)  from likes
+				WHERE user_id IN (SELECT user_id FROM profiles WHERE sex = 'm')) , ' лайков') as woman,
+		IF ( COUNT(user_id) > (SELECT COUNT(user_id) as mans  from likes
+				WHERE user_id IN (SELECT user_id FROM profiles WHERE sex = 'm')), 
+                'мужчины поставили больше лайков', 'женщины поставили больше лайков') as 'вывод'
+        FROM likes
+		WHERE user_id IN (SELECT user_id FROM profiles WHERE sex = 'f');
+
 
 
 -- Найти 10 пользователей, которые проявляют наименьшую активность в использовании социальной сет
+-- выбираем пользователей из всех таблиц где они обозначились и которые так или иначе характеризуют активность пользователей
+
+SELECT  (SELECT CONCAT(first_name, ' ', last_name) 
+        FROM users WHERE id = t.uid) as 'Имя',  COUNT(t.uid) as 'Количество вхождений' FROM  
+(SELECT user_id as uid FROM media
+UNION ALL
+SELECT from_user_id as uid FROM messages
+UNION ALL
+SELECT user_id as uid FROM communities_users
+UNION ALL
+SELECT user_id as uid FROM posts
+UNION ALL
+SELECT user_id as uid FROM likes
+UNION ALL 
+SELECT user_id as uid FROM meetings_users
+UNION ALL
+SELECT user_id as uid FROM friendship
+UNION ALL 
+SELECT friend_id as uid FROM friendship WHERE confirmed_at IS NOT NULL) as t
+GROUP BY t.uid
+ORDER BY COUNT(t.uid)
+LIMIT 10;
+
+
+
