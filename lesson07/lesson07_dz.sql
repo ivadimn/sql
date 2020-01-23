@@ -45,3 +45,5 @@ INSERT INTO cities (label, name) VALUES
 SELECT c1.name as 'From', c2.name as 'To' 
 	FROM cities c1 JOIN flights f ON c1.label = f.from_city
     JOIN cities c2 ON c2.label = f.to_city;
+
+
