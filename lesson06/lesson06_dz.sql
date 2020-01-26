@@ -80,7 +80,7 @@ SELECT from_user_id as uid
 			)
        ) 
 UNION ALL
-SELECT id as uid
+SELECT ALL id as uid
    FROM users
    WHERE id IN (
        SELECT target_id FROM likes WHERE target_type_id = (
