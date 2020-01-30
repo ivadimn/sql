@@ -19,6 +19,23 @@ CREATE VIEW products_name AS
 SELECT * FROM products_name;
 
 
+# (по желанию) Пусть имеется любая таблица с календарным полем created_at. 
+# Создайте запрос, который удаляет устаревшие записи из таблицы, оставляя только 5 самых свежих записей.
+
+DROP TABLE IF EXISTS test_table;
+CREATE TABLE test_table (
+	id SERIAL,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO test_table (created_at)
+	VALUES ('1999-10-20'), ('1998-10-20'), ('1998-02-17'), ('2000-09-11'), ('2019-10-20'), ('2016-11-21');
+
+SELECT * from test_table ORDER BY created_at DESC;
+
+DELETE FROM test_table WHERE id NOT IN 
+		(SELECT * FROM (SELECT id FROM test_table ORDER BY created_at DESC LIMIT 5) as tt);
+
 # Создайте хранимую функцию hello(), 
 # которая будет возвращать приветствие, 
 # в зависимости от текущего времени суток. 
