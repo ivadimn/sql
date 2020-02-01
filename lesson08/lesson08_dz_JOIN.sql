@@ -8,7 +8,9 @@
 # главная выборка делается из объединения запросов 
 
 # наш пользователь user_id = 10
-		        
+        
+                
+                
 SELECT m.uname, count(m.uname) FROM (			
 # Сообщения к нашему пользователя, друзья нашего пользователя - friend_id
  (SELECT CONCAT(first_name, ' ', last_name) as uname
@@ -132,8 +134,8 @@ FROM
 	SELECT friend_id as uid FROM friendship WHERE confirmed_at IS NOT NULL) as t
     JOIN users u ON u.id = t.uid
 	GROUP BY t.uid
-	ORDER BY COUNT(t.uid)
-	LIMIT 10;  
+	ORDER BY COUNT(t.uid) DESC;
+	
    
 
     
