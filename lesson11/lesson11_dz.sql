@@ -59,6 +59,33 @@ INSERT INTO catalogs (name)
 	VALUES ('Флэшь накопители'), ('Мониторы');
 SELECT * FROM logs;
 
+
+# (по желанию) Создайте SQL-запрос, который помещает в таблицу users миллион записей.
+# можно предложить такой вариант
+# но это очень долго, на 1000 записях вставка работала почти 2 минуты
+# на миллионе будет работать более суток
+# наверно есть более быстрый способ
+
+DROP PROCEDURE IF EXISTS fill_users;
+DELIMITER //
+CREATE PROCEDURE fill_users() 
+BEGIN
+	DECLARE i INT DEFAULT 0;
+	DECLARE d, m, y INT;
+	WHILE (i < 1000) DO
+		SET y = 1970 + FLOOR(RAND() * 40);
+		SET m = 1 + FLOOR(RAND() * 11);
+		SET d = 1 + FLOOR(RAND() * 27);
+		INSERT INTO users (name, birthday_at)
+			VALUES (CONCAT('UserName ', i), CONCAT(y, '-', m, '-', d));
+		SET i = i + 1;
+	END WHILE;
+END//
+DELIMITER ;
+
+CALL fill_users();
+
+
 # NoSQL
 # В базе данных Redis подберите коллекцию для подсчета посещений с определенных IP-адресов.
 
