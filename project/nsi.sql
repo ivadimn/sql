@@ -1,6 +1,13 @@
  
- CREATE DATABASE hunter;
+CREATE DATABASE hunter;
+use hunter;
 
+CREATE TABLE units (
+	id SERIAL,
+    name VARCHAR(128) COMMENT 'Наименование орг. единицы',
+    begin_at DATETIME DEFAULT NOW(),
+    end_at DATE DEFAULT '9999-12-31' COMMENT 'Дата ограничения орг. единицы'
+) COMMENT 'Организационные единиц';
 
 # Уровни должности
 CREATE TABLE positions_levels (
