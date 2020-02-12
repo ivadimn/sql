@@ -2,24 +2,37 @@
 CREATE DATABASE hunter;
 use hunter;
 
-CREATE TABLE units (
-	id SERIAL,
-    name VARCHAR(128) COMMENT 'Наименование орг. единицы',
-    begin_at DATETIME DEFAULT NOW(),
-    end_at DATE DEFAULT '9999-12-31' COMMENT 'Дата ограничения орг. единицы'
-) COMMENT 'Организационные единиц';
+
 
 # Уровни должности
+DROP TABLE IF EXISTS positions_levels;
 CREATE TABLE positions_levels (
 	id SERIAL,
-    name VARCHAR(128)
+    name VARCHAR(128) NOT NULL UNIQUE
 ) COMMENT 'Таблица уровней должности';
 
 INSERT INTO positions_levels (name) VALUES
 	('Высший управленческий состав'), ('Руководители'), 
     ('Специалисты'), ('Служащие'), ('Рабочие');
+
+# справочная таблица должностей 
+DROP TABLE IF EXISTS positions;    
+CREATE TABLE positions (
+	id SERIAL,
+    name VARCHAR(128) NOT NULL UNIQUE,
+    level_id BIGINT UNSIGNED NOT NULL, 
+    CONSTRAINT level_id_fk FOREIGN KEY(level_id) REFERENCES positions_levels(id)
+) COMMENT 'Таблица должностей';
+
+INSERT INTO positions (name, level_id) VALUES
+ ('Начальник Департамента', 2),  ('Начальник Управления', 2), ('Начальник отдела', 2),
+ ('Заместитель начальника Департамента', 2), ('Заместитель начальника Управления', 2),
+ ('Заместитель начальника отдела', 2), ('главный специалист', 3), 
+ ('ведущий специалист', 3), ('ведущий инженер', 3), ('секретарь', 4), ('референт', 4),
+ ('ведущий программист', 3);
   
 # Виды трудовых договоров  
+DROP TABLE IF EXISTS contract_types;   
 CREATE TABLE contract_types (
 	id SERIAL,
     name VARCHAR(64)
@@ -29,6 +42,7 @@ INSERT INTO contract_types (name) VALUES
 	('Срочный'), ('Бессрочный'); 
     
 # Направления деятельности
+DROP TABLE IF EXISTS activities;   
 CREATE TABLE activities (
 	id SERIAL,
     name VARCHAR(255)
