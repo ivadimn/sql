@@ -19,8 +19,8 @@ CREATE TABLE unit_links (
 	parent_id BIGINT UNSIGNED NOT NULL,
     unit_id BIGINT UNSIGNED NOT NULL,
     PRIMARY KEY(parent_id, unit_id),
-    CONSTRAINT parent_id_fk FOREIGN KEY(parent_id) REFERENCES units(id),
-    CONSTRAINT unit_id_fk FOREIGN KEY(unit_id) REFERENCES units(id)
+    CONSTRAINT unit_links_parent_id_fk FOREIGN KEY(parent_id) REFERENCES units(id),
+    CONSTRAINT unit_links_unit_id_fk FOREIGN KEY(unit_id) REFERENCES units(id)
 ) COMMENT 'Иерархия организационных единиц';  
     
  
@@ -43,7 +43,7 @@ BEGIN
             SELECT MAX(id) INTO @maxsubdep_id FROM units;
             INSERT INTO unit_links (parent_id, unit_id) VALUES(@maxdep_id, @maxsubdep_id);
             SET k = 1;
-            WHILE k < 3 DO
+            WHILE k < 4 DO
 				INSERT INTO units (name, level) VALUES (CONCAT(unit_name, i, j, k), 2);
 				SELECT MAX(id) INTO @maxunit_id FROM units;
 				INSERT INTO unit_links (parent_id, unit_id) VALUES(@maxsubdep_id, @maxunit_id);
@@ -70,8 +70,8 @@ CREATE TABLE staff_table (
     vacant_from DATETIME DEFAULT NOW() COMMENT 'С какой даты уществует вакансия',
     begin_at DATETIME DEFAULT NOW() COMMENT 'Дата создания штатной единицы',
     end_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата ограничения штатноой единицы',
-    CONSTRAINT staff_unit_id_fk FOREIGN KEY(unit_id) REFERENCES units(id),
-    CONSTRAINT position_id_fk FOREIGN KEY(position_id) REFERENCES positions(id)
+    CONSTRAINT staff_table_unit_id_fk FOREIGN KEY(unit_id) REFERENCES units(id),
+    CONSTRAINT staff_table_position_id_fk FOREIGN KEY(position_id) REFERENCES positions(id)
 ) COMMENT 'Штатное расписание';  
 
 # Процедура заполнения штатного расписания
@@ -123,20 +123,21 @@ CREATE TABLE functions (
 	name TEXT NOT NULL COMMENT 'Текстовое описание функции',
     begin_at DATETIME DEFAULT NOW() COMMENT 'Дата создания функции',
     end_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата ограничения функции',
-    CONSTRAINT task_id_fk FOREIGN KEY(task_id) REFERENCES tasks(id)
+    CONSTRAINT functions_task_id_fk FOREIGN KEY(task_id) REFERENCES tasks(id)
 ) COMMENT 'Функции распределяются по должностям штатного расписания'; 
 
-# Процедура заполнения штатного расписания
+# Процедура задач и функций
 DROP PROCEDURE IF EXISTS insert_tasks;
 DELIMITER //
 CREATE PROCEDURE insert_tasks() 
 BEGIN
 	DECLARE i, j INT DEFAULT 1;
-	WHILE (i < 51) DO
+    SELECT COUNT(*) INTO @units_count FROM units;
+	WHILE (i < @units_count + 1) DO
 		INSERT INTO tasks (id, name) 
 			VALUES (i, CONCAT('Задача ', i));
 		SET j = 1;
-		WHILE j < 4 DO			
+		WHILE j < 5 DO			
 			INSERT INTO functions (task_id, name)
 						VALUES (i, CONCAT('Функция ', i, j));
 			SET j = j + 1;	
@@ -149,3 +150,75 @@ DELIMITER ;
 CALL insert_tasks();
 
 SELECT t.name, f.name FROM tasks t JOIN functions f ON f.task_id = t.id;
+
+
+# Таблица связки подразделений и задач
+DROP TABLE IF EXISTS tasks_units;
+CREATE TABLE tasks_units (
+	unit_id BIGINT UNSIGNED NOT NULL,
+    task_id BIGINT UNSIGNED NOT NULL,
+	linked_at DATETIME DEFAULT NOW() COMMENT 'Дата привязки задачи к подразделению',
+    unlinked_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата отсоединения задачи от подразделения',
+    CONSTRAINT tasks_units_task_id_fk FOREIGN KEY(task_id) REFERENCES tasks(id),
+    CONSTRAINT tasks_units_unit_id_fk FOREIGN KEY(unit_id) REFERENCES units(id)
+) COMMENT 'Функции распределяются по должностям штатного расписания'; 
+
+# Процедура привязки задач к подразделениям
+DROP PROCEDURE IF EXISTS insert_tasks_units;
+DELIMITER //
+CREATE PROCEDURE insert_tasks_units() 
+BEGIN
+	DECLARE i INT DEFAULT 1;
+    SELECT COUNT(*) INTO @units_count FROM units;
+	WHILE (i < @units_count + 1) DO
+		INSERT INTO tasks_units (unit_id, task_id) 
+			VALUES (i, i);
+	    SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ;
+
+CALL insert_tasks_units();
+SELECT * from tasks_units;
+
+
+# Таблица связки функций и штатных должностей
+DROP TABLE IF EXISTS functions_staffs;
+CREATE TABLE functions_staffs (
+	staff_id BIGINT UNSIGNED NOT NULL,
+    function_id BIGINT UNSIGNED NOT NULL,
+	linked_at DATETIME DEFAULT NOW() COMMENT 'Дата привязки задачи к подразделению',
+    unlinked_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата отсоединения задачи от подразделения',
+    CONSTRAINT functions_staffs_staff_id_fk FOREIGN KEY(staff_id) REFERENCES staff_table(id),
+    CONSTRAINT functions_staffs_function_id_fk FOREIGN KEY(function_id) REFERENCES functions(id)
+) COMMENT 'Функции распределяются по должностям штатного расписания'; 
+
+# Процедура привязки функций к должностям
+DROP PROCEDURE IF EXISTS link_functions_staffs;
+DELIMITER //
+CREATE PROCEDURE link_functions_staffs() 
+BEGIN
+	DECLARE i INT DEFAULT 1;
+    SELECT COUNT(*) INTO @staff_count FROM staff_table;
+	WHILE (i < @staff_count + 1) DO
+		INSERT INTO functions_staffs(staff_id, function_id) SELECT i, f.id 
+					FROM functions f JOIN tasks_units tu ON f.task_id = tu.task_id
+					JOIN staff_table st ON tu.unit_id = st.unit_id
+					AND st.id = i;
+	    SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ;
+
+CALL link_functions_staffs();
+SELECT * FROM functions_staffs;
+
+SELECT 1, f.id 
+	FROM functions f JOIN tasks_units tu ON f.task_id = tu.task_id
+		JOIN staff_table st ON tu.unit_id = st.unit_id
+        WHERE st.unit_id = 1;
+        
+SELECT 1, f.id FROM functions f JOIN tasks_units tu ON f.task_id = tu.task_id
+			JOIN staff_table st ON tu.unit_id = st.unit_id
+            AND st.id = 1;
+			
