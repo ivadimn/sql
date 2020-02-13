@@ -34,16 +34,16 @@ BEGIN
     DECLARE unit_name VARCHAR(64) DEFAULT 'отдел ';
     DECLARE i, j, k INT;
     SET i = 1;
-    WHILE (i < 21) DO
+    WHILE (i < 10) DO
 		INSERT INTO units (name, level) VALUES (CONCAT(dep_name, i), 0);
         SELECT MAX(id) INTO @maxdep_id FROM units;
         SET j = 1;
-        WHILE j < 6 DO
+        WHILE j < 3 DO
 			INSERT INTO units (name, level) VALUES (CONCAT(subdep_name, i, j), 1);
             SELECT MAX(id) INTO @maxsubdep_id FROM units;
             INSERT INTO unit_links (parent_id, unit_id) VALUES(@maxdep_id, @maxsubdep_id);
             SET k = 1;
-            WHILE k < 4 DO
+            WHILE k < 3 DO
 				INSERT INTO units (name, level) VALUES (CONCAT(unit_name, i, j, k), 2);
 				SELECT MAX(id) INTO @maxunit_id FROM units;
 				INSERT INTO unit_links (parent_id, unit_id) VALUES(@maxsubdep_id, @maxunit_id);
@@ -92,7 +92,8 @@ BEGIN
         ELSE             
             WHILE j < 6 DO			
 				INSERT INTO staff_table (unit_id, position_id)
-						VALUES (i, (6 + FLOOR(RAND() * 4)));          
+						VALUES (i, (6 + FLOOR(RAND() * 4)));
+				SET j = j + 1;	
              END WHILE;        
         END IF;
 		SET i = i + 1;
@@ -101,8 +102,50 @@ END//
 DELIMITER ;
 
 CALL insert_staffs();
-DELETE  from staff_table;
+
 SELECT * FROM staff_table;
 
+# Таблица задач подразделей 
+# здесь упрощённо 2 уровня задачи подразделений и функции должности
+DROP TABLE IF EXISTS tasks;
+CREATE TABLE tasks (
+	id SERIAL,
+	name TEXT NOT NULL COMMENT 'Текстовое описание задачи',
+    begin_at DATETIME DEFAULT NOW() COMMENT 'Дата создания задачи',
+    end_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата ограничения задачи'
+) COMMENT 'Задачи подразделений'; 
 
+# Таблица функций в привязке к задачам
+DROP TABLE IF EXISTS functions;
+CREATE TABLE functions (
+	id SERIAL,
+    task_id BIGINT UNSIGNED NOT NULL,
+	name TEXT NOT NULL COMMENT 'Текстовое описание функции',
+    begin_at DATETIME DEFAULT NOW() COMMENT 'Дата создания функции',
+    end_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата ограничения функции',
+    CONSTRAINT task_id_fk FOREIGN KEY(task_id) REFERENCES tasks(id)
+) COMMENT 'Функции распределяются по должностям штатного расписания'; 
 
+# Процедура заполнения штатного расписания
+DROP PROCEDURE IF EXISTS insert_tasks;
+DELIMITER //
+CREATE PROCEDURE insert_tasks() 
+BEGIN
+	DECLARE i, j INT DEFAULT 1;
+	WHILE (i < 51) DO
+		INSERT INTO tasks (id, name) 
+			VALUES (i, CONCAT('Задача ', i));
+		SET j = 1;
+		WHILE j < 4 DO			
+			INSERT INTO functions (task_id, name)
+						VALUES (i, CONCAT('Функция ', i, j));
+			SET j = j + 1;	
+        END WHILE;        
+        SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ;
+
+CALL insert_tasks();
+
+SELECT t.name, f.name FROM tasks t JOIN functions f ON f.task_id = t.id;
