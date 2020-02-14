@@ -7,7 +7,6 @@ DROP TABLE IF EXISTS units;
 CREATE TABLE units (
 	id SERIAL,
     name VARCHAR(128) COMMENT 'Наименование орг. единицы',
-    level INT1 UNSIGNED NOT NULL COMMENT 'Уровень подразделения в структуре',
     begin_at DATETIME DEFAULT NOW() COMMENT 'Дата создания орг. единицы',
     end_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата ограничения орг. единицы'
 ) COMMENT 'Организационные единиц';
@@ -16,9 +15,10 @@ CREATE TABLE units (
 # таблица иерархии орг единиц
 DROP TABLE IF EXISTS unit_links;
 CREATE TABLE unit_links (
-	parent_id BIGINT UNSIGNED NOT NULL,
-    unit_id BIGINT UNSIGNED NOT NULL,
-    PRIMARY KEY(parent_id, unit_id),
+	unit_id BIGINT UNSIGNED NOT NULL,
+    parent_id BIGINT UNSIGNED NOT NULL,
+    level INT1 UNSIGNED NOT NULL COMMENT 'Уровень подразделения в структуре',
+    PRIMARY KEY(unit_id, parent_id),
     CONSTRAINT unit_links_parent_id_fk FOREIGN KEY(parent_id) REFERENCES units(id),
     CONSTRAINT unit_links_unit_id_fk FOREIGN KEY(unit_id) REFERENCES units(id)
 ) COMMENT 'Иерархия организационных единиц';  
@@ -74,6 +74,24 @@ CREATE TABLE staff_table (
     CONSTRAINT staff_table_position_id_fk FOREIGN KEY(position_id) REFERENCES positions(id)
 ) COMMENT 'Штатное расписание';  
 
+SELECT u.name, p.name FROM staff_table st JOIN units u ON u.id = st.unit_id
+			JOIN positions p ON p.id = st.position_id
+            WHERE st.unit_id = 5;
+            
+SELECT u.name  FROM units u JOIN unit_links ul ON ul.unit_id = u.id
+			AND ul.parent_id = 1;
+            
+SELECT u.name  FROM units u JOIN unit_links ul ON ul.unit_id = u.id
+				AND ul.parent_id = 1;
+                
+SELECT u.name FROM units u JOIN unit_links ul1 ON ul1.parent_id = u.id
+				JOIN unit_links ul2 ON ul1.unit_id = ul2.parent_id
+                WHERE ul2.unit_id = 5;
+                
+SELECT ul1.parent_id, ul1.unit_id  FROM unit_links ul1 
+			JOIN unit_links ul2 ON ul2.parent_id = ul1.unit_id
+			WHERE ul1.unit_id = 6;
+
 # Процедура заполнения штатного расписания
 DROP PROCEDURE IF EXISTS insert_staffs;
 DELIMITER //
@@ -85,9 +103,9 @@ BEGIN
     WHILE (i < @count_units) DO
 		SET j = 1;
 		SELECT level INTO @level FROM units WHERE id = i;
-        IF @level = 1 THEN  INSERT INTO staff_table (unit_id, position_id)
+        IF @level = 0 THEN  INSERT INTO staff_table (unit_id, position_id)
 					VALUES (i, 1), (i, 4), (i, 10), (i, 11);  
-        ELSEIF @level = 2 THEN INSERT INTO staff_table (unit_id, position_id)
+        ELSEIF @level = 1 THEN INSERT INTO staff_table (unit_id, position_id)
 					VALUES (i, 2), (i, 4), (i, 10);  
         ELSE             
             WHILE j < 6 DO			
