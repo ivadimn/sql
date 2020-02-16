@@ -2,8 +2,6 @@
 CREATE DATABASE hunter;
 use hunter;
 
-
-
 # Уровни должности
 DROP TABLE IF EXISTS positions_levels;
 CREATE TABLE positions_levels (
@@ -24,7 +22,8 @@ CREATE TABLE positions (
     CONSTRAINT level_id_fk FOREIGN KEY(level_id) REFERENCES positions_levels(id)
 ) COMMENT 'Таблица должностей';
 
-INSERT INTO positions (name, level_id) VALUES
+INSERT INTO positions (name, level_id) VALUES 
+ ('Генеральный директор', 1),
  ('Начальник Департамента', 2),  ('Начальник Управления', 2), ('Начальник отдела', 2),
  ('Заместитель начальника Департамента', 2), ('Заместитель начальника Управления', 2),
  ('Заместитель начальника отдела', 2), ('главный специалист', 3), 
@@ -75,4 +74,121 @@ INSERT INTO activities (name) VALUES
 	('Хозяйственное обеспечение'),
 	('Электроэнергетика'),
 	('Юридическое сопровождение');
+    
+# Справочник видов образования  
+DROP TABLE IF EXISTS edu_types;
+CREATE TABLE edu_types (
+	id SERIAL,
+    name VARCHAR(128) NOT NULL UNIQUE
+) COMMENT 'Виды образования';  
+
+INSERT INTO edu_types (name) VALUES 
+('Основное общее образование'), ('Среднее (полное) общее образование'),
+('Начальное профессиональное образование'),
+('Среднее профессиональное образование'),
+('Неполное высшее образование'),
+('Высшее профессиональное образование'),
+('Послевузовское профессиональное образование'),
+('Ученое звание, ученая степень'),
+('Повышение квалификации'),
+('Профессиональная переподготовка'),
+('Краткосрочные семинары'),
+('Консультационные семинары'),
+('Стажировка');
+
+# Справочник видов документов  
+DROP TABLE IF EXISTS doc_types;
+CREATE TABLE doc_types (
+	id SERIAL,
+    name VARCHAR(128) NOT NULL UNIQUE
+) COMMENT 'Виды документов';  
+
+INSERT INTO doc_types (name) VALUES 
+('Справка'), ('Аттесстат'),('Диплом'), ('Сертификат'), 
+('Свидетельство'), ('Паспорт РФ'), ('Заграничный паспорт'),
+('Свидетельство ИНН'), ('СНИЛС'), ('Автобиография'), ('Трудовая книжка'),
+('Военный билет');
+
+# Справочник уровней владения иностранным языком  
+DROP TABLE IF EXISTS foreign_levels;
+CREATE TABLE foreign_levels (
+	id SERIAL,
+    name VARCHAR(64) NOT NULL UNIQUE
+) COMMENT 'Виды документов';  
+
+INSERT INTO foreign_levels (name) VALUES 
+('A1'), ('A2'),('B1'), ('B2'), ('C1'), ('C2'), 
+('Читает и переводит со словарем'),
+('Умеет объясняться'), 
+('Владеет свободно');
+
+# Этапы прохождения отбора кандидатом  
+DROP TABLE IF EXISTS selection_steps;
+CREATE TABLE selection_steps (
+	id INT1 UNSIGNED PRIMARY KEY,
+    name VARCHAR(128) NOT NULL UNIQUE
+) COMMENT 'Этапы прохождения отбора кандидатом';
+
+INSERT INTO selection_steps (id, name) VALUES
+	(1, 'Проверка полноты персональных данных и документов'),
+    (2, 'Первичное собеседование в кадровой службе'),
+    (3, 'Собеседование в подразделении подашем заявку на подбор'),
+    (4, 'Собеседование с руководителем кадровой службы'),
+    (5, 'Проверка кандидата в Службе безопасности'),
+    (6, 'Принятие решение о приёме');
+    
+
+# Виды пожеланий кандидата  
+DROP TABLE IF EXISTS wishes;
+CREATE TABLE wishes (
+	id SERIAL,
+    name VARCHAR(128) NOT NULL UNIQUE
+) COMMENT 'Виды пожеланий кандидата';
+
+INSERT INTO wishes (name) VALUES
+	('Готовность к командировкам'),
+    ('Готовность к перезду'),
+    ('Вид договора'),
+    ('Характер занятости'),
+    ('Ожидания по зарплате');
+    
+# Города  
+DROP TABLE IF EXISTS places;
+CREATE TABLE places (
+	id SERIAL,
+    name VARCHAR(128) NOT NULL UNIQUE
+) COMMENT 'Города';    
+
+INSERT INTO places (name) VALUES
+('Москва'),
+('Санкт-Петербург'),
+('Новосибирск'),
+('Екатеринбург'),
+('Нижний Новгород'),
+('Казань'),
+('Челябинск'),
+('Омск'),
+('Самара'),
+('Ростов-на-Дону'),
+('Уфа'),
+('Красноярск'),
+('Воронеж'),
+('Пермь'),
+('Волгоград'),
+('Краснодар'),
+('Саратов'),
+('Тюмень'),
+('Тольятти'),
+('Ижевск'),
+('Барнаул'),
+('Ульяновск');
+
+DROP TABLE IF EXISTS relatives;
+CREATE TABLE relatives (
+	id SERIAL,
+    name VARCHAR(16) NOT NULL UNIQUE
+) COMMENT 'Родственники';
+
+INSERT INTO relatives (name) VALUES    
+   ('Мать'), ('Отец'), ('Муж'), ('Жена'), ('Сын'), ('Дочь'), ('Брат'), ('Сестра');
     

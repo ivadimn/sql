@@ -3,14 +3,18 @@
 USE hunter;
 
 # Организационные единицы
+# хранение орг. структуры организованов в виде вложенных подмножеств
+# элементы орг структруры создаются, но не удаляются, а ограничиваются определённой датой 
+# в целях хранения истории
 DROP TABLE IF EXISTS units;
 CREATE TABLE units (
 	id SERIAL,
+    parent_id BIGINT UNSIGNED,
     name VARCHAR(128) COMMENT 'Наименование орг. единицы',
     begin_at DATETIME DEFAULT NOW() COMMENT 'Дата создания орг. единицы',
     end_at DATETIME DEFAULT '9999-12-31' COMMENT 'Дата ограничения орг. единицы'
 ) COMMENT 'Организационные единиц';
-# Организационные единицы не удаляются в целях хранения истории
+# 
 
 # таблица иерархии орг единиц
 DROP TABLE IF EXISTS unit_links;
@@ -23,6 +27,27 @@ CREATE TABLE unit_links (
     CONSTRAINT unit_links_unit_id_fk FOREIGN KEY(unit_id) REFERENCES units(id)
 ) COMMENT 'Иерархия организационных единиц';  
     
+# Триггер используется при вставке орг единиц
+# в таблице связей  создаются записи.
+#    
+DROP TRIGGER IF EXISTS add_unit;
+DELIMITER //
+CREATE TRIGGER add_unit AFTER INSERT ON units
+FOR EACH ROW
+BEGIN
+	IF NEW.parent_id IS NULL THEN
+		INSERT INTO unit_links (unit_id, parent_id, level)
+			VALUES(NEW.id, NEW.id, 1);
+    ELSE 
+		SELECT level INTO @l FROM unit_links WHERE unit_id = NEW.parent_id AND parent_id = NEW.parent_id;
+        INSERT INTO unit_links (unit_id, parent_id, level)
+			VALUES(NEW.id, NEW.id, @l + 1);
+        INSERT INTO unit_links (unit_id, parent_id, level)
+					SELECT NEW.id, parent_id, level FROM unit_links WHERE unit_id = NEW.parent_id;	
+    END IF;        
+END//
+DELIMITER ; 
+
  
 # Процедура для создания тестовой оргструктуры
 DROP PROCEDURE IF EXISTS insert_units;
@@ -34,20 +59,18 @@ BEGIN
     DECLARE unit_name VARCHAR(64) DEFAULT 'отдел ';
     DECLARE i, j, k INT;
     SET i = 1;
-    WHILE (i < 10) DO
-		INSERT INTO units (name, level) VALUES (CONCAT(dep_name, i), 0);
+    INSERT INTO units (id, parent_id, name) VALUES (1, NULL, 'Организация');
+    WHILE (i < 4) DO
+		INSERT INTO units (parent_id, name) VALUES (1, CONCAT(dep_name, i));
         SELECT MAX(id) INTO @maxdep_id FROM units;
         SET j = 1;
         WHILE j < 3 DO
-			INSERT INTO units (name, level) VALUES (CONCAT(subdep_name, i, j), 1);
+			INSERT INTO units (parent_id, name) VALUES (@maxdep_id, CONCAT(subdep_name, i, j));
             SELECT MAX(id) INTO @maxsubdep_id FROM units;
-            INSERT INTO unit_links (parent_id, unit_id) VALUES(@maxdep_id, @maxsubdep_id);
             SET k = 1;
             WHILE k < 4 DO
-				INSERT INTO units (name, level) VALUES (CONCAT(unit_name, i, j, k), 2);
-				SELECT MAX(id) INTO @maxunit_id FROM units;
-				INSERT INTO unit_links (parent_id, unit_id) VALUES(@maxsubdep_id, @maxunit_id);
-                SET k = k + 1;
+				INSERT INTO units (parent_id, name) VALUES (@maxsubdep_id, CONCAT(unit_name, i, j, k));
+				SET k = k + 1;
             END WHILE;
             SET j = j + 1;
         END WHILE;
@@ -58,7 +81,19 @@ DELIMITER ;
 
 CALL insert_units();
 SELECT * FROM units;
-#таблица иерархии организационных единиц
+SELECT * FROM unit_links;
+
+# Запрос выводит иерархию до конкретного подразделения
+SELECT u.name, u.id, s.parent_id, s.level FROM unit_links s
+    LEFT JOIN units u ON u.id = s.parent_id
+WHERE s.unit_id = 6
+ORDER BY level;
+
+# Запрос выводит всю иерархию от конкретного подразделения
+SELECT u.name, u.id, s.parent_id, s.level FROM unit_links s
+    LEFT JOIN units u ON u.id = s.unit_id
+WHERE s.parent_id = 2
+ORDER BY level;
  
 # Таблица штатного расписания 
 DROP TABLE IF EXISTS staff_table;
@@ -74,23 +109,7 @@ CREATE TABLE staff_table (
     CONSTRAINT staff_table_position_id_fk FOREIGN KEY(position_id) REFERENCES positions(id)
 ) COMMENT 'Штатное расписание';  
 
-SELECT u.name, p.name FROM staff_table st JOIN units u ON u.id = st.unit_id
-			JOIN positions p ON p.id = st.position_id
-            WHERE st.unit_id = 5;
-            
-SELECT u.name  FROM units u JOIN unit_links ul ON ul.unit_id = u.id
-			AND ul.parent_id = 1;
-            
-SELECT u.name  FROM units u JOIN unit_links ul ON ul.unit_id = u.id
-				AND ul.parent_id = 1;
-                
-SELECT u.name FROM units u JOIN unit_links ul1 ON ul1.parent_id = u.id
-				JOIN unit_links ul2 ON ul1.unit_id = ul2.parent_id
-                WHERE ul2.unit_id = 5;
-                
-SELECT ul1.parent_id, ul1.unit_id  FROM unit_links ul1 
-			JOIN unit_links ul2 ON ul2.parent_id = ul1.unit_id
-			WHERE ul1.unit_id = 6;
+
 
 # Процедура заполнения штатного расписания
 DROP PROCEDURE IF EXISTS insert_staffs;
@@ -102,11 +121,13 @@ BEGIN
     SELECT COUNT(*) INTO @count_units FROM units;
     WHILE (i < @count_units) DO
 		SET j = 1;
-		SELECT level INTO @level FROM units WHERE id = i;
-        IF @level = 0 THEN  INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 1), (i, 4), (i, 10), (i, 11);  
-        ELSEIF @level = 1 THEN INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 2), (i, 4), (i, 10);  
+		SELECT level INTO @level FROM unit_links WHERE parent_id = i AND unit_id = i;
+        IF @level = 1 THEN  INSERT INTO staff_table (unit_id, position_id)
+					VALUES (i, 13), (i, 10);  
+        ELSEIF @level = 2 THEN INSERT INTO staff_table (unit_id, position_id)
+					VALUES (i, 1), (i, 4), (i, 10);  
+        ELSEIF @level = 3 THEN INSERT INTO staff_table (unit_id, position_id)
+					VALUES (i, 2), (i, 5), (i, 10);              
         ELSE             
             WHILE j < 6 DO			
 				INSERT INTO staff_table (unit_id, position_id)
@@ -119,9 +140,13 @@ BEGIN
 END//
 DELIMITER ;
 
+SELECT * FROM unit_links;
+SELECT * FROM units;
+
 CALL insert_staffs();
 
 SELECT * FROM staff_table;
+
 
 # Таблица задач подразделей 
 # здесь упрощённо 2 уровня задачи подразделений и функции должности
@@ -231,12 +256,4 @@ DELIMITER ;
 CALL link_functions_staffs();
 SELECT * FROM functions_staffs;
 
-SELECT 1, f.id 
-	FROM functions f JOIN tasks_units tu ON f.task_id = tu.task_id
-		JOIN staff_table st ON tu.unit_id = st.unit_id
-        WHERE st.unit_id = 1;
-        
-SELECT 1, f.id FROM functions f JOIN tasks_units tu ON f.task_id = tu.task_id
-			JOIN staff_table st ON tu.unit_id = st.unit_id
-            AND st.id = 1;
 			
