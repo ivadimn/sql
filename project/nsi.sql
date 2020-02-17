@@ -1,4 +1,5 @@
  
+DROP DATABASE IF EXISTS hunter; 
 CREATE DATABASE hunter;
 use hunter;
 
@@ -100,14 +101,16 @@ INSERT INTO edu_types (name) VALUES
 DROP TABLE IF EXISTS doc_types;
 CREATE TABLE doc_types (
 	id SERIAL,
-    name VARCHAR(128) NOT NULL UNIQUE
+    name VARCHAR(128) NOT NULL UNIQUE,
+    is_necessary BOOLEAN NOT NULL 
 ) COMMENT 'Виды документов';  
 
-INSERT INTO doc_types (name) VALUES 
-('Справка'), ('Аттесстат'),('Диплом'), ('Сертификат'), 
-('Свидетельство'), ('Паспорт РФ'), ('Заграничный паспорт'),
-('Свидетельство ИНН'), ('СНИЛС'), ('Автобиография'), ('Трудовая книжка'),
-('Военный билет');
+INSERT INTO doc_types (name, is_necessary) VALUES 
+('Справка', FALSE), ('Аттесстат', FALSE),('Диплом', TRUE), ('Сертификат', FALSE), 
+('Свидетельство', FALSE), ('Паспорт РФ', TRUE), ('Заграничный паспорт', FALSE),
+('Свидетельство ИНН', TRUE), ('СНИЛС', TRUE), ('Автобиография', TRUE), ('Трудовая книжка', TRUE),
+('Военный билет', FALSE), ('Самопрезентация', TRUE), ('Согласие на обработку персональных данных', TRUE),
+('Резюме', TRUE);
 
 # Справочник уровней владения иностранным языком  
 DROP TABLE IF EXISTS foreign_levels;
