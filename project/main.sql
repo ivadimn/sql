@@ -47,15 +47,19 @@ DROP TABLE IF EXISTS requests;
 CREATE TABLE requests (
 	id SERIAL,
     staff_id BIGINT UNSIGNED COMMENT 'Идентификатор вакантной должности',
+    activity_id BIGINT UNSIGNED COMMENT 'Идентификатор направления деятельности',
     created_at DATETIME DEFAULT NOW(),
-    closed_at DATETIME DEFAULT '9999-12-31'
+    closed_at DATETIME DEFAULT '9999-12-31',
+    CONSTRAINT requests_staff_id_fk FOREIGN KEY(staff_id) REFERENCES staff_table(id),
+    CONSTRAINT requests_activity_id_fk FOREIGN KEY(activity_id) REFERENCES activities(id)
 ) COMMENT 'заявка на подбор';
 
 # Создание заявок на подбор
-INSERT INTO requests (staff_id) SELECT id FROM staff_table WHERE is_vacant = TRUE LIMIT 50;
+INSERT INTO requests (staff_id, activity_id) 
+	SELECT id, FLOOR(1 + (RAND() * 25)) AS level FROM staff_table WHERE is_vacant = TRUE LIMIT 50;
 
 # Таблица детальных требований к должности указаываемых в заявке на подбор
-DROP TABLE IF EXISTS request_detail;
+DROP TABLE IF EXISTS requests_detail;
 CREATE TABLE requests_detail (
 	request_id BIGINT UNSIGNED PRIMARY KEY,
     edu_id BIGINT UNSIGNED COMMENT 'Требование к образованию',
@@ -89,19 +93,79 @@ INSERT INTO requests_detail (request_id, edu_id, experience, language, foreign_l
 		END AS skills
 	FROM requests; 
     
-#Таблица, содержащая данные кандидатов
-DROP TABLE IF EXISTS recruits;
-CREATE TABLE recruits (
+#Таблица, содержащая резюме кандидатов
+DROP TABLE IF EXISTS resumes;
+CREATE TABLE resumes (
 	id SERIAL,
     name VARCHAR(128) NOT NULL COMMENT 'Для прототы ФИО поместим с одно поле',
     birthday DATE NOT NULL,
     sex ENUM('мужской', 'женский') NOT NULL,
-    place_id BIGINT UNSIGNED,
+    place_id BIGINT UNSIGNED COMMENT 'Место рождения', 
     email VARCHAR(128) NOT NULL UNIQUE,
     phone VARCHAR(16) NOT NULL UNIQUE,
-    CONSTRAINT recruits_place_id_fk FOREIGN KEY(place_id) REFERENCES places(id) 
+    salary_before BIGINT UNSIGNED COMMENT 'Текущий размер зарплаты', 
+    salary_after BIGINT UNSIGNED COMMENT 'Желаемый размер зарплаты',  
+    CONSTRAINT resumes_place_id_fk FOREIGN KEY(place_id) REFERENCES places(id) 
 ) COMMENT 'Данные кандидатов';
 
+
+# Таблица образование по конкретному резюме
+DROP TABLE IF EXISTS resume_edus;
+CREATE TABLE resume_edus (
+	id SERIAL,
+    resume_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(255) NOT NULL COMMENT 'Наименование учебного заведения',
+    begin_at DATE NOT NULL COMMENT 'Начало обучения',
+    end_at DATE NOT NULL COMMENT 'Окночание обучения',
+    edu_type_id BIGINT UNSIGNED NOT NULL,
+    CONSTRAINT resume_edus_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id),
+    CONSTRAINT resume_edus_edu_type_id_fk FOREIGN KEY(edu_type_id) REFERENCES edu_types(id)
+) COMMENT 'Данные об образовании';
+
+# Таблица трудовой деятельности
+DROP TABLE IF EXISTS labor_periods;
+CREATE TABLE labor_periods (
+	id SERIAL,
+    resume_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(255) NOT NULL COMMENT 'Наименование учебного заведения',
+    begin_at DATE NOT NULL COMMENT 'Начало обучения',
+    end_at DATE NOT NULL COMMENT 'Окночание обучения',
+    CONSTRAINT labor_periods_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id)
+) COMMENT 'Данные о трудовой деятельности';
+
+
+
+
+# Процедура создания кандидатов
+DROP PROCEDURE IF EXISTS insert_staffs;
+DELIMITER //
+CREATE PROCEDURE insert_staffs() 
+BEGIN
+	DECLARE i, j INT DEFAULT 1;
+	SET i = 1;
+    SELECT COUNT(*) INTO @count_units FROM units;
+    WHILE (i < @count_units) DO
+		SET j = 1;
+		SELECT level INTO @level FROM unit_links WHERE parent_id = i AND unit_id = i;
+        IF @level = 1 THEN  INSERT INTO staff_table (unit_id, position_id)
+					VALUES (i, 13), (i, 10);  
+        ELSEIF @level = 2 THEN INSERT INTO staff_table (unit_id, position_id)
+					VALUES (i, 1), (i, 4), (i, 10);  
+        ELSEIF @level = 3 THEN INSERT INTO staff_table (unit_id, position_id)
+					VALUES (i, 2), (i, 5), (i, 10);              
+        ELSE             
+            WHILE j < 6 DO			
+				INSERT INTO staff_table (unit_id, position_id)
+						VALUES (i, (6 + FLOOR(RAND() * 4)));
+				SET j = j + 1;	
+             END WHILE;        
+        END IF;
+		SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ; 
+
+    
 
 
     
