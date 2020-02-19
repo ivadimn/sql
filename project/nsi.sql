@@ -186,12 +186,12 @@ INSERT INTO places (name) VALUES
 ('Барнаул'),
 ('Ульяновск');
 
-DROP TABLE IF EXISTS relatives;
-CREATE TABLE relatives (
+DROP TABLE IF EXISTS relative_types;
+CREATE TABLE relative_types (
 	id SERIAL,
     name VARCHAR(16) NOT NULL UNIQUE
 ) COMMENT 'Родственники';
 
-INSERT INTO relatives (name) VALUES    
+INSERT INTO relative_types (name) VALUES    
    ('Мать'), ('Отец'), ('Муж'), ('Жена'), ('Сын'), ('Дочь'), ('Брат'), ('Сестра');
     

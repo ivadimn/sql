@@ -108,6 +108,74 @@ CREATE TABLE resumes (
     CONSTRAINT resumes_place_id_fk FOREIGN KEY(place_id) REFERENCES places(id) 
 ) COMMENT 'Данные кандидатов';
 
+# Процедура создания резюме
+DROP PROCEDURE IF EXISTS insert_resumes;
+DELIMITER //
+CREATE PROCEDURE insert_resumes() 
+BEGIN
+	DECLARE i, lid INT DEFAULT 1;
+    DECLARE lname VARCHAR(128);
+    DECLARE bd DATE;
+    DECLARE email VARCHAR(64);
+    DECLARE phone VARCHAR(16);
+	    
+    WHILE (i < 50) DO
+		SET lid =FLOOR(1 + RAND() * 10);
+        SELECT name, ename INTO @n1, @en FROM fsn_m WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name, im INTO @n2, @im FROM fan_m WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name, io INTO @n3, @io FROM ffn_m WHERE id = lid;
+        SET lname = CONCAT(@n1, ' ', @n2, ' ', @n3);
+        SET bd = DATE(CONCAT(FLOOR(1970 + RAND() * 30),'-', FLOOR(1 + RAND() * 11), '-',
+           + FLOOR(1 + RAND() * 27)));
+        CASE
+			WHEN i % 4 = 1 
+				THEN SET email = CONCAT(@im, @io, @en, i, '@mail.ru');
+			WHEN i % 3 = 2 
+				THEN SET email = CONCAT(@im, @io, @en, i, '@gmail.com');
+            WHEN i % 3 = 3 
+				THEN SET email = CONCAT(@im, @io, @en, i, '@bk.ru');    
+			ELSE SET email = CONCAT(@im, @io, @en, i, '@hotmail.com');
+		END CASE;   
+        SET phone = CONCAT('+7', FLOOR(900 + RAND() * 99), FLOOR(100 + RAND() * 800), 
+           FLOOR(1 + RAND() * 98), FLOOR(1 + RAND() * 98));
+        
+        INSERT INTO resumes (name, birthday, sex, place_id, email, phone, salary_before, salary_after) 
+          VALUES (lname, bd, 'мужской', FLOOR(1 + RAND() * 21), email, phone, 
+				FLOOR(50000 + RAND() * 50000), FLOOR(700000 + RAND() * 50000));
+		
+        SET lid =FLOOR(1 + RAND() * 10);
+        SELECT name, ename INTO @n1, @en FROM fsn_w WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name, im INTO @n2, @im FROM fan_w WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name, io INTO @n3, @io FROM ffn_w WHERE id = lid;
+        SET lname = CONCAT(@n1, ' ', @n2, ' ', @n3);
+        SET bd = DATE(CONCAT(FLOOR(1970 + RAND() * 30),'-', FLOOR(1 + RAND() * 11), '-',
+           + FLOOR(1 + RAND() * 27)));
+        CASE
+			WHEN i % 4 = 1 
+				THEN SET email = CONCAT(@im, @io, @en, i, '@mail.ru');
+			WHEN i % 3 = 2 
+				THEN SET email = CONCAT(@im, @io, @en, i, '@gmail.com');
+            WHEN i % 3 = 3 
+				THEN SET email = CONCAT(@im, @io, @en, i, '@bk.ru');    
+			ELSE SET email = CONCAT(@im, @io, @en, i, '@hotmail.com');
+		END CASE;   
+        SET phone = CONCAT('+7', FLOOR(900 + RAND() * 99), FLOOR(100 + RAND() * 800), 
+           FLOOR(1 + RAND() * 98), FLOOR(1 + RAND() * 98));
+        
+        INSERT INTO resumes (name, birthday, sex, place_id, email, phone, salary_before, salary_after) 
+          VALUES (lname, bd, 'женский', FLOOR(1 + RAND() * 21), email, phone, 
+				FLOOR(50000 + RAND() * 50000), FLOOR(700000 + RAND() * 50000));
+		SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ; 
+
+call insert_resumes();
+
 
 # Таблица образование по конкретному резюме
 DROP TABLE IF EXISTS resume_edus;
@@ -122,19 +190,110 @@ CREATE TABLE resume_edus (
     CONSTRAINT resume_edus_edu_type_id_fk FOREIGN KEY(edu_type_id) REFERENCES edu_types(id)
 ) COMMENT 'Данные об образовании';
 
+# Процедура создания образования по резюме
+DROP PROCEDURE IF EXISTS insert_resume_edus;
+DELIMITER //
+CREATE PROCEDURE insert_resume_edus() 
+BEGIN
+	DECLARE i, j, eid, lcount INT DEFAULT 1;
+    DECLARE bd, ed DATE;
+       
+    SELECT COUNT(*) INTO @count FROM resumes;    
+    WHILE (i <= @count) DO
+		SELECT birthday INTO @bdate FROM resumes WHERE id = i;
+        SET lcount = FLOOR(1 + RAND() * 2);
+        SET j = 1;
+        WHILE (j <= lcount) DO
+			SET bd = DATE_ADD(@bdate, INTERVAL 17 YEAR);
+			SET ed = DATE_ADD(@bdate, INTERVAL 22 YEAR);
+            SET eid = FLOOR(1 + RAND() * 11);
+            SELECT name, edu_type_id INTO @ename, @edu_type FROM edu_m WHERE id = eid;
+            INSERT INTO resume_edus (resume_id, name, begin_at, end_at, edu_type_id) VALUES
+				(i, @ename, bd, ed, @edu_type);
+            SET j = j + 1;
+        END WHILE;
+		
+		SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ; 
+
+CALL insert_resume_edus();
+
 # Таблица трудовой деятельности
 DROP TABLE IF EXISTS labor_periods;
 CREATE TABLE labor_periods (
 	id SERIAL,
     resume_id BIGINT UNSIGNED NOT NULL,
-    name VARCHAR(255) NOT NULL COMMENT 'Наименование учебного заведения',
-    begin_at DATE NOT NULL COMMENT 'Начало обучения',
+    name VARCHAR(255) NOT NULL COMMENT 'Наименование окпфтш',
+    begin_at DATE NOT NULL COMMENT 'Начало оучения',
     end_at DATE NOT NULL COMMENT 'Окночание обучения',
     CONSTRAINT labor_periods_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id)
 ) COMMENT 'Данные о трудовой деятельности';
 
-SELECT FLOOR(1 + RAND() * 10);
+# Процедура создания образования по резюме
+DROP PROCEDURE IF EXISTS insert_resume_labor;
+DELIMITER //
+CREATE PROCEDURE insert_resume_labor() 
+BEGIN
+	DECLARE i, fid, period INT DEFAULT 1;
+    DECLARE bd, ed, today DATE;
+       
+    SET today = NOW();   
+    SELECT COUNT(*) INTO @count FROM resumes;    
+    WHILE (i <= @count) DO
+		SELECT birthday INTO @bdate FROM resumes WHERE id = i;
+        SET bd = DATE_ADD(@bdate, INTERVAL 22 YEAR);
+        WHILE (bd < today) DO
+			SET fid = FLOOR(1 + RAND() * 14);
+            SELECT name INTO @fname FROM firms WHERE id = fid;
+            SET ed = DATE_ADD(bd, INTERVAL FLOOR(1 + RAND() * 3) YEAR);    
+            INSERT INTO labor_periods (resume_id, name, begin_at, end_at) VALUES
+				(i, @fname, bd, ed);
+            SET bd = ed;    
+        END WHILE;
+		SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ; 
 
+CALL insert_resume_labor();
+
+# Таблица родственников, для простоты дату рождения не указываем
+DROP TABLE IF EXISTS relatives;
+CREATE TABLE relatives (
+	id SERIAL,
+    resume_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(128) NOT NULL COMMENT 'Имя родственника',
+    relative_type_id BIGINT UNSIGNED,
+    CONSTRAINT relatives_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id),
+    CONSTRAINT relatives_relative_type_id_fk FOREIGN KEY(relative_type_id) REFERENCES relative_types(id)
+) COMMENT 'Данные о родственниках';
+
+# Процедура создания родственников
+DROP PROCEDURE IF EXISTS insert_relatives;
+DELIMITER //
+CREATE PROCEDURE insert_relatives() 
+BEGIN
+	DECLARE i, j, rid, lcount INT DEFAULT 1;
+    DECLARE bd, ed, today DATE;
+         
+    SELECT COUNT(*) INTO @count FROM resumes;    
+    WHILE (i <= @count) DO
+		SET lcount = FLOOR(1 + RAND() * 3);
+        SET j = 1;
+        WHILE (j <= lcount) DO
+			SET rid = FLOOR(1 + RAND() * 7);
+            INSERT INTO relatives (resume_id, name, relative_type_id) VALUES
+				(i, CONCAT('ФИО родственника ', i, j), rid);
+            SET j = j + 1;
+        END WHILE;
+        SET i = i + 1;
+     END WHILE;   
+END//
+DELIMITER ; 
+
+CALL insert_relatives();
 
 SELECT 
 	CONCAT((Select name from fsn_m WHERE id in (SELECT FLOOR(1 + RAND() * 10))), ' ',
@@ -142,39 +301,6 @@ SELECT
     (Select name from ffn_m WHERE id in (SELECT FLOOR(1 + RAND() * 10))));
 
 Select name from fsn_m WHERE id = 6;
-
-
-
-# Процедура создания кандидатов
-DROP PROCEDURE IF EXISTS insert_resumes;
-DELIMITER //
-CREATE PROCEDURE insert_resumes() 
-BEGIN
-	DECLARE i, lid INT DEFAULT 1;
-    DECLARE lname VARCHAR(128);
-    DECLARE bd DATE;
-	SET i = 1;
-    
-    SELECT COUNT(*) INTO @count_units FROM units;
-    WHILE (i < 100) DO
-		SET lid = FLOOR(1 + RAND() * 10)
-        SELECT name INTO @n1 FROM fsn_m WHERE id = lid;
-        SET lid = FLOOR(1 + RAND() * 10)
-        SELECT name INTO @n2 FROM fan_m WHERE id = lid;
-        SET lid = FLOOR(1 + RAND() * 10)
-        SELECT name INTO @n1 FROM ffn_m WHERE id = lid;
-        SET lname = CONCAT(@n1, ' ', @n2, ' ', @n3);
-        
-		
-		SET i = i + 1;
-    END WHILE;
-END//
-DELIMITER ; 
-
-    
-
-
-    
 
 SELECT s.id, u.name, p.name, s.is_vacant FROM staff_table s
 	JOIN units u ON s.unit_id = u.id
