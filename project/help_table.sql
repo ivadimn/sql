@@ -56,7 +56,7 @@ INSERT INTO ffn_m (name) VALUES
 
 #Женские
 DROP TABLE IF EXISTS fsn_w;
-CREATE TEMPORARY TABLE fsn_w (
+CREATE TABLE fsn_w (
 	id SERIAL,
     name VARCHAR(32)
 );
@@ -73,7 +73,7 @@ INSERT INTO fsn_w (name) VALUES
 ('Жукова');
 
 DROP TABLE IF EXISTS fan_w;
-CREATE TEMPORARY TABLE fan_w (
+CREATE TABLE fan_w (
 	id SERIAL,
     name VARCHAR(32)
 );
@@ -90,7 +90,7 @@ INSERT INTO fan_w (name) VALUES
 ('Марна');
 
 DROP TABLE IF EXISTS ffn_w;
-CREATE TEMPORARY TABLE ffn_w (
+CREATE TABLE ffn_w (
 	id SERIAL,
     name VARCHAR(32)
 );
@@ -107,7 +107,7 @@ INSERT INTO ffn_w (name) VALUES
 ('Витальевна'); 
 
 DROP TABLE IF EXISTS edu_m;
-CREATE TEMPORARY TABLE edu_m (
+CREATE TABLE edu_m (
 	id SERIAL,
     name VARCHAR(32),
     edu_type_id BIGINT UNSIGNED
@@ -127,7 +127,7 @@ INSERT INTO edu_m (name, edu_type_id) VALUES
 ('Техникум 3', 4);
 
 DROP TABLE IF EXISTS firms;
-CREATE TEMPORARY TABLE firms (
+CREATE TABLE firms (
 	id SERIAL,
     name VARCHAR(32)
 );
@@ -148,5 +148,56 @@ INSERT INTO ffn_w (name) VALUES
 ('Транснефть'),
 ('Кока-Кола');
 
+
+DROP TABLE IF EXISTS test_name;
+CREATE TABLE test_name (
+	id SERIAL,
+    name VARCHAR(128),
+    sex ENUM ('мужской', 'женский'),
+    bd DATE
+);
+
+call insert_resumes();
+
+# Процедура создания кандидатов
+DROP PROCEDURE IF EXISTS insert_resumes;
+DELIMITER //
+CREATE PROCEDURE insert_resumes() 
+BEGIN
+	DECLARE i, lid INT DEFAULT 1;
+    DECLARE lname VARCHAR(128);
+    DECLARE bd DATE;
+	    
+    WHILE (i < 10) DO
+		SET lid =FLOOR(1 + RAND() * 10);
+        SELECT name INTO @n1 FROM fsn_m WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name INTO @n2 FROM fan_m WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name INTO @n3 FROM ffn_m WHERE id = lid;
+        SET lname = CONCAT(@n1, ' ', @n2, ' ', @n3);
+        SET bd = DATE(CONCAT(FLOOR(1970 + RAND() * 30),'-', FLOOR(1 + RAND() * 11), '-',
+           + FLOOR(1 + RAND() * 27)));
+        
+        INSERT INTO test_name (name, sex, bd) VALUES (lname, 'мужской', bd);
+		
+        SET lid =FLOOR(1 + RAND() * 10);
+        SELECT name INTO @n1 FROM fsn_w WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name INTO @n2 FROM fan_w WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10);
+        SELECT name INTO @n3 FROM ffn_w WHERE id = lid;
+        SET lname = CONCAT(@n1, ' ', @n2, ' ', @n3);
+        SET bd = DATE(CONCAT(FLOOR(1970 + RAND() * 30),'-', FLOOR(1 + RAND() * 11), '-',
+           + FLOOR(1 + RAND() * 27)));
+        
+        INSERT INTO test_name (name, sex, bd) VALUES (lname, 'женский', bd);
+        
+		SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ; 
+
+SELECT BIN(CHAR(161));
 
 

@@ -1,3 +1,4 @@
+
 -- MySQL dump 10.13  Distrib 8.0.19, for Linux (x86_64)
 --
 -- Host: localhost    Database: hunter
@@ -18,6 +19,8 @@
 --
 -- Table structure for table `activities`
 --
+use hunter;
+
 
 DROP TABLE IF EXISTS `activities`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

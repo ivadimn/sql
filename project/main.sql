@@ -133,33 +133,39 @@ CREATE TABLE labor_periods (
     CONSTRAINT labor_periods_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id)
 ) COMMENT 'Данные о трудовой деятельности';
 
+SELECT FLOOR(1 + RAND() * 10);
+
+
+SELECT 
+	CONCAT((Select name from fsn_m WHERE id in (SELECT FLOOR(1 + RAND() * 10))), ' ',
+    (Select name from fan_m WHERE id in (SELECT FLOOR(1 + RAND() * 10))), ' ', 
+    (Select name from ffn_m WHERE id in (SELECT FLOOR(1 + RAND() * 10))));
+
+Select name from fsn_m WHERE id = 6;
 
 
 
 # Процедура создания кандидатов
-DROP PROCEDURE IF EXISTS insert_staffs;
+DROP PROCEDURE IF EXISTS insert_resumes;
 DELIMITER //
-CREATE PROCEDURE insert_staffs() 
+CREATE PROCEDURE insert_resumes() 
 BEGIN
-	DECLARE i, j INT DEFAULT 1;
+	DECLARE i, lid INT DEFAULT 1;
+    DECLARE lname VARCHAR(128);
+    DECLARE bd DATE;
 	SET i = 1;
+    
     SELECT COUNT(*) INTO @count_units FROM units;
-    WHILE (i < @count_units) DO
-		SET j = 1;
-		SELECT level INTO @level FROM unit_links WHERE parent_id = i AND unit_id = i;
-        IF @level = 1 THEN  INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 13), (i, 10);  
-        ELSEIF @level = 2 THEN INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 1), (i, 4), (i, 10);  
-        ELSEIF @level = 3 THEN INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 2), (i, 5), (i, 10);              
-        ELSE             
-            WHILE j < 6 DO			
-				INSERT INTO staff_table (unit_id, position_id)
-						VALUES (i, (6 + FLOOR(RAND() * 4)));
-				SET j = j + 1;	
-             END WHILE;        
-        END IF;
+    WHILE (i < 100) DO
+		SET lid = FLOOR(1 + RAND() * 10)
+        SELECT name INTO @n1 FROM fsn_m WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10)
+        SELECT name INTO @n2 FROM fan_m WHERE id = lid;
+        SET lid = FLOOR(1 + RAND() * 10)
+        SELECT name INTO @n1 FROM ffn_m WHERE id = lid;
+        SET lname = CONCAT(@n1, ' ', @n2, ' ', @n3);
+        
+		
 		SET i = i + 1;
     END WHILE;
 END//
