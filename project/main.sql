@@ -58,6 +58,8 @@ CREATE TABLE requests (
 INSERT INTO requests (staff_id, activity_id) 
 	SELECT id, FLOOR(1 + (RAND() * 25)) AS level FROM staff_table WHERE is_vacant = TRUE LIMIT 50;
 
+UPDATE requests SET created_at='2020-02-01';   
+
 # Таблица детальных требований к должности указаываемых в заявке на подбор
 DROP TABLE IF EXISTS requests_detail;
 CREATE TABLE requests_detail (
@@ -294,6 +296,92 @@ END//
 DELIMITER ; 
 
 CALL insert_relatives();
+
+# Таблица документов кандидата
+DROP TABLE IF EXISTS resume_docs;
+CREATE TABLE resume_docs (
+	resume_id BIGINT UNSIGNED NOT NULL,
+    doc_type_id BIGINT UNSIGNED NOT NULL COMMENT 'Тип документа',
+    doc_path VARCHAR(255),
+    PRIMARY KEY(resume_id, doc_type_id),
+    CONSTRAINT resume_docs_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id),
+    CONSTRAINT resume_docs_doc_type_id_fk FOREIGN KEY(doc_type_id) REFERENCES doc_types(id)
+) COMMENT 'Перечень документов кандидата';
+
+# Процедура создания родственников
+DROP PROCEDURE IF EXISTS insert_docs;
+DELIMITER //
+CREATE PROCEDURE insert_docs() 
+BEGIN
+	DECLARE i, j, did, lcount INT DEFAULT 1;
+    DECLARE path VARCHAR(255) DEFAULT 'http:/hrportal.ru/docs/'; 
+         
+    SELECT COUNT(*) INTO @count FROM resumes;    
+    WHILE (i <= @count) DO
+		SET lcount = FLOOR(1 + RAND() * 14);
+        SET j = 1;
+        WHILE (j <= lcount) DO
+			SET did = FLOOR(1 + RAND() * 14);
+            SELECT COUNT(*) INTO @dcount FROM resume_docs WHERE resume_id = i AND doc_type_id = did;
+            IF (@dcount = 0) THEN
+				SELECT name INTO @type_name FROM doc_types WHERE id = did;
+				INSERT INTO resume_docs (resume_id, doc_type_id, doc_path) VALUES
+					(i, did,  CONCAT(path, @type_name, i, j, '.pdf'));
+            END IF;    
+            SET j = j + 1;
+        END WHILE;
+        SET i = i + 1;
+     END WHILE;   
+END//
+DELIMITER ; 
+
+CALL insert_docs();
+
+# таблица процесса рассмотрения кандидатов
+# Таблица трудовой деятельности
+DROP TABLE IF EXISTS processing;
+CREATE TABLE processing (
+	request_id BIGINT UNSIGNED NOT NULL COMMENT 'Заявка на подбор',
+    resume_id BIGINT UNSIGNED NOT NULL COMMENT 'Кандидат ',
+    step_id BIGINT UNSIGNED NOT NULL COMMENT 'Шаг рассмотрения ',
+    begin_at DATE NOT NULL COMMENT 'Начало рассмотрения на шаге',
+    end_at DATE NOT NULL COMMENT 'Окночание рассмотрения на шаге',
+    is_success BOOLEAN COMMENT 'Результат прохождения шага',
+    comments TEXT,
+    PRIMARY KEY(request_id, resume_id, step_id),
+    CONSTRAINT processing_request_id_fk FOREIGN KEY(request_id) REFERENCES requests(id),
+    CONSTRAINT processing_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id),
+    CONSTRAINT processing_step_id_fk FOREIGN KEY(step_id) REFERENCES selection_steps(id)
+) COMMENT 'Процесс рассмотрения кандидата';
+
+DROP PROCEDURE IF EXISTS insert_processing;
+DELIMITER //
+CREATE PROCEDURE insert_processing() 
+BEGIN
+	DECLARE i, j, k, period INT DEFAULT 1;
+    DECLARE bd, ed, today DATE;
+    DECLARE count_line, count_step INT DEFAULT 1;   
+    SET today = NOW();   
+    SELECT COUNT(*) INTO @count_req FROM requests;
+    SELECT COUNT(*) INTO @count_res FROM resumes;
+    WHILE (i <= @count_req) DO
+		SET count_line = FLOOR(1 + RAND() * 2);
+        SET k = 1;
+		SET bd = DATE('2020-02-02');
+        WHILE (k <= count_line AND j <= @count_res) DO
+			SET count_step = FLOOR(1 + RAND() * 2)
+            SELECT name INTO @fname FROM firms WHERE id = fid;
+            SET ed = DATE_ADD(bd, INTERVAL FLOOR(1 + RAND() * 3) YEAR);    
+            INSERT INTO labor_periods (resume_id, name, begin_at, end_at) VALUES
+				(i, @fname, bd, ed);
+            SET bd = ed;    
+        END WHILE;
+		SET i = i + 1;
+    END WHILE;
+END//
+DELIMITER ; 
+
+
 
 SELECT 
 	CONCAT((Select name from fsn_m WHERE id in (SELECT FLOOR(1 + RAND() * 10))), ' ',
