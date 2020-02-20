@@ -134,9 +134,9 @@ BEGIN
         CASE
 			WHEN i % 4 = 1 
 				THEN SET email = CONCAT(@im, @io, @en, i, '@mail.ru');
-			WHEN i % 3 = 2 
+			WHEN i % 4 = 2 
 				THEN SET email = CONCAT(@im, @io, @en, i, '@gmail.com');
-            WHEN i % 3 = 3 
+            WHEN i % 4 = 3 
 				THEN SET email = CONCAT(@im, @io, @en, i, '@bk.ru');    
 			ELSE SET email = CONCAT(@im, @io, @en, i, '@hotmail.com');
 		END CASE;   
@@ -170,7 +170,7 @@ BEGIN
         
         INSERT INTO resumes (name, birthday, sex, place_id, email, phone, salary_before, salary_after) 
           VALUES (lname, bd, 'женский', FLOOR(1 + RAND() * 21), email, phone, 
-				FLOOR(50000 + RAND() * 50000), FLOOR(700000 + RAND() * 50000));
+				FLOOR(50000 + RAND() * 50000), FLOOR(70000 + RAND() * 50000));
 		SET i = i + 1;
     END WHILE;
 END//
@@ -179,7 +179,7 @@ DELIMITER ;
 call insert_resumes();
 
 
-# Таблица образование по конкретному резюме
+# Таблица образований по конкретному резюме
 DROP TABLE IF EXISTS resume_edus;
 CREATE TABLE resume_edus (
 	id SERIAL,
@@ -337,28 +337,76 @@ DELIMITER ;
 
 CALL insert_docs();
 
+# Таблица пожеланий кандидата
+DROP TABLE IF EXISTS resume_wishes;
+CREATE TABLE resume_wishes (
+	resume_id BIGINT UNSIGNED NOT NULL,
+    wish_id BIGINT UNSIGNED NOT NULL COMMENT 'Пожелание',
+    wish_value VARCHAR(32) COMMENT 'Значение пожелания',
+    PRIMARY KEY(resume_id, wish_id),
+    CONSTRAINT resume_wishes_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id),
+    CONSTRAINT resume_wishes_wish_id_fk FOREIGN KEY(wish_id) REFERENCES wishes(id)
+) COMMENT 'Пожелания кандидата';
+
+DROP PROCEDURE IF EXISTS insert_wishes;
+DELIMITER //
+CREATE PROCEDURE insert_wishes() 
+BEGIN
+	DECLARE i INT DEFAULT 1;
+             
+    SELECT COUNT(*) INTO @count FROM resumes;    
+    WHILE (i <= @count) DO
+		IF RAND() > 0.5 THEN
+			INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 1, 'Да');
+        ELSE
+			INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 1, 'Нет');
+        END IF;
+        IF RAND() > 0.5 THEN
+			INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 2, 'Да');
+        ELSE
+			INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 2, 'Нет');
+        END IF;
+        IF RAND() > 0.5 THEN
+			INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 3, 'Бессрочный');
+            INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 4, 'Постоянная работв');
+        ELSE
+			INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 3, 'Срочный');
+            INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 4, 'Временная работв');
+        END IF;
+        SELECT salary_after INTO @salary FROM resumes WHERE id = i;
+        INSERT INTO resume_wishes (resume_id, wish_id, wish_value) VALUES (i, 5, @salary);
+        SET i = i + 1;
+     END WHILE;   
+END//
+DELIMITER ; 
+
+CALL insert_wishes();
+
 # таблица процесса рассмотрения кандидатов
-# Таблица трудовой деятельности
 DROP TABLE IF EXISTS processing;
 CREATE TABLE processing (
 	request_id BIGINT UNSIGNED NOT NULL COMMENT 'Заявка на подбор',
     resume_id BIGINT UNSIGNED NOT NULL COMMENT 'Кандидат ',
-    step_id BIGINT UNSIGNED NOT NULL COMMENT 'Шаг рассмотрения ',
+    step_id INT1 UNSIGNED NOT NULL COMMENT 'Шаг рассмотрения ',
     begin_at DATE NOT NULL COMMENT 'Начало рассмотрения на шаге',
     end_at DATE NOT NULL COMMENT 'Окночание рассмотрения на шаге',
+    person_id BIGINT UNSIGNED COMMENT 'Кто проводит мероприятие ',
     is_success BOOLEAN COMMENT 'Результат прохождения шага',
     comments TEXT,
     PRIMARY KEY(request_id, resume_id, step_id),
     CONSTRAINT processing_request_id_fk FOREIGN KEY(request_id) REFERENCES requests(id),
     CONSTRAINT processing_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id),
-    CONSTRAINT processing_step_id_fk FOREIGN KEY(step_id) REFERENCES selection_steps(id)
+    CONSTRAINT processing_step_id_fk FOREIGN KEY(step_id) REFERENCES selection_steps(id),
+    CONSTRAINT processing_person_id_fk FOREIGN KEY(person_id) REFERENCES personal(id)
 ) COMMENT 'Процесс рассмотрения кандидата';
 
+
+# Процедура генерации процессов рассмотрения кандидатов по заявкам на подбор
 DROP PROCEDURE IF EXISTS insert_processing;
 DELIMITER //
 CREATE PROCEDURE insert_processing() 
 BEGIN
-	DECLARE i, j, k, period INT DEFAULT 1;
+	DECLARE i, j, k, cs, person INT DEFAULT 1;
     DECLARE bd, ed, today DATE;
     DECLARE count_line, count_step INT DEFAULT 1;   
     SET today = NOW();   
@@ -369,19 +417,57 @@ BEGIN
         SET k = 1;
 		SET bd = DATE('2020-02-02');
         WHILE (k <= count_line AND j <= @count_res) DO
-			SET count_step = FLOOR(1 + RAND() * 2)
-            SELECT name INTO @fname FROM firms WHERE id = fid;
-            SET ed = DATE_ADD(bd, INTERVAL FLOOR(1 + RAND() * 3) YEAR);    
-            INSERT INTO labor_periods (resume_id, name, begin_at, end_at) VALUES
-				(i, @fname, bd, ed);
-            SET bd = ed;    
+			SET count_step = FLOOR(1 + RAND() * 5);
+            SET cs = 1;
+            WHILE (cs < count_step) DO
+				SET ed = DATE_ADD(bd, INTERVAL FLOOR(1 + RAND() * 7) DAY);  
+                IF (cs = 4 OR cs = 6) THEN 
+					SET person = 2;
+                ELSE
+					CASE
+						WHEN i % 3 = 1 
+							THEN SET person = 3;
+						WHEN i % 3 = 2 
+							THEN SET person = 4;
+						ELSE SET person = 5;
+					END CASE;   
+                END IF;
+                
+				INSERT INTO processing (request_id, resume_id, step_id, 
+					begin_at, end_at, person_id, is_success, comments) 
+                    VALUES (i, j, cs, bd, ed, person, TRUE, 'Пройдено успешно');
+				SET bd = ed;    
+                SET cs = cs + 1;
+            END WHILE;
+            IF (cs = 4 OR cs = 6) THEN 
+				SET person = 2;
+            ELSE
+				CASE
+					WHEN i % 3 = 1 
+						THEN SET person = 3;
+					WHEN i % 3 = 2 
+						THEN SET person = 4;
+					ELSE SET person = 5;
+				END CASE;   
+            END IF;
+            INSERT INTO processing (request_id, resume_id, step_id, 
+					begin_at, end_at, person_id, is_success, comments) 
+                    VALUES (i, j, cs, bd, '9999-12-31', person, FALSE, NULL);
+            SET k = k + 1;
+            SET j = j + 1;
         END WHILE;
 		SET i = i + 1;
     END WHILE;
 END//
 DELIMITER ; 
 
+CALL insert_processing();
 
+SELECT p.name FROM personal p JOIN staff_table st ON p.staff_id = st.id
+			AND st.position_id = 2; 
+
+SELECT p.name, ps.name FROM personal p JOIN staff_table st ON p.staff_id = st.id
+			JOIN positions ps ON st.position_id = ps.id; 
 
 SELECT 
 	CONCAT((Select name from fsn_m WHERE id in (SELECT FLOOR(1 + RAND() * 10))), ' ',
