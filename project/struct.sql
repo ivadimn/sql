@@ -123,15 +123,17 @@ BEGIN
 		SET j = 1;
 		SELECT level INTO @level FROM unit_links WHERE parent_id = i AND unit_id = i;
         IF @level = 1 THEN  INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 13), (i, 10);  
+					VALUES (i, 1), (i, 11), (i, 12);  
         ELSEIF @level = 2 THEN INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 1), (i, 4), (i, 10);  
+					VALUES (i, 2), (i, 5), (i, 11);  
         ELSEIF @level = 3 THEN INSERT INTO staff_table (unit_id, position_id)
-					VALUES (i, 2), (i, 5), (i, 10);              
+					VALUES (i, 3), (i, 6), (i, 11);              
         ELSE             
-            WHILE j < 6 DO			
+			INSERT INTO staff_table (unit_id, position_id)
+					VALUES (i, 4), (i, 7); 
+            WHILE j <= 3 DO			
 				INSERT INTO staff_table (unit_id, position_id)
-						VALUES (i, (6 + FLOOR(RAND() * 4)));
+						VALUES (i, (8 + FLOOR(RAND() * 2)));
 				SET j = j + 1;	
              END WHILE;        
         END IF;

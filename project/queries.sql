@@ -1,17 +1,4 @@
-# 1. Запрос выводит список документов представленных кандидатом
-
-SELECT dt.name  FROM doc_types dt LEFT JOIN resume_docs rd ON rd.doc_type_id = dt.id 
-					 AND dt.is_necessary = TRUE AND rd.resume_id = 2
-                     WHERE rd.resume_id IS NOT NULL;
-				     
-# 1. Запрос выводит список документов которых не хватает для рассмотрения
-SELECT dt.name  FROM doc_types dt LEFT JOIN resume_docs rd ON rd.doc_type_id = dt.id 
-					 AND dt.is_necessary = TRUE AND rd.resume_id = 2
-                     WHERE rd.resume_id IS NULL;
-				
-                
-
-# 2. функция формирует полный путь должности
+# 1. Функция формирует полный путь должности
 DROP FUNCTION IF EXISTS get_path_unit;
 DELIMITER //
 CREATE FUNCTION get_path_unit(unit BIGINT UNSIGNED)
@@ -41,6 +28,27 @@ DELIMITER ;
 
 SELECT get_path_unit(6);
 
+# Запрос выводит штатное расписание
+SELECT st.id, get_path_unit(st.unit_id), p.name FROM staff_table st
+		JOIN positions p ON st.position_id = p.id ORDER BY unit_id;
+        
+        
+
+# 1. Запрос выводит список документов представленных кандидатом
+
+SELECT dt.name  FROM doc_types dt LEFT JOIN resume_docs rd ON rd.doc_type_id = dt.id 
+					 AND dt.is_necessary = TRUE AND rd.resume_id = 2
+                     WHERE rd.resume_id IS NOT NULL;
+				     
+# 1. Запрос выводит список документов которых не хватает для рассмотрения
+SELECT dt.name  FROM doc_types dt LEFT JOIN resume_docs rd ON rd.doc_type_id = dt.id 
+					 AND dt.is_necessary = TRUE AND rd.resume_id = 2
+                     WHERE rd.resume_id IS NULL;
+				
+                
+
+
+
 # 2. Список должностей с указанием полного наименования подразделения
 # заявки на подбор
 
@@ -50,16 +58,17 @@ DELIMITER //
 CREATE PROCEDURE copy_catalogs ()
 BEGIN
   DECLARE id INT;
-  DECLARE is_end INT DEFAULT 0;
+  DECLARE done INT DEFAULT FALSE;
   DECLARE name TINYTEXT;
 
   DECLARE cur_staff CURSOR FOR SELECT id, unit_id FROM staff_table;
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET is_end = 1;
 
   CREATE TEMPORARY TABLE temp_unit (
+	 staff_id BIGINT UNSIGNED
 	 unit VARCHAR(255),
      position VARCHAR(32),
-     staff_id BIGINT UNSIGNED
+     
   );
   
   OPEN cur_staff;
@@ -75,4 +84,7 @@ BEGIN
   CLOSE curcat;
 END//
 DELIMITER ;
+
+SELECT st.id, get_path_unit(st.unit_id), p.name FROM staff_table st
+		JOIN positions p ON st.position_id = p.id ORDER BY unit_id;
 

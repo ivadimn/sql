@@ -8,7 +8,8 @@ DROP TABLE IF EXISTS personal;
 CREATE TABLE personal (
 	id SERIAL,
     name VARCHAR(255) NOT NULL,
-    staff_id BIGINT UNSIGNED COMMENT 'Занимаемая должность'
+    staff_id BIGINT UNSIGNED COMMENT 'Занимаемая должность',
+    CONSTRAINT personal_staff_id_idx FOREIGN KEY(staff_id) REFERENCES staff_table(id) 
 ) COMMENT 'Таблица сотрудников';
 
 # при добавлении в таблицу personal
@@ -307,6 +308,7 @@ CREATE TABLE resume_docs (
     CONSTRAINT resume_docs_resume_id_fk FOREIGN KEY(resume_id) REFERENCES resumes(id),
     CONSTRAINT resume_docs_doc_type_id_fk FOREIGN KEY(doc_type_id) REFERENCES doc_types(id)
 ) COMMENT 'Перечень документов кандидата';
+
 
 # Процедура создания родственников
 DROP PROCEDURE IF EXISTS insert_docs;
